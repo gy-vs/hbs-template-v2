@@ -291,6 +291,65 @@ describe('blocks', function () {
         .withCompileOptions({ compat: true })
         .toCompileTo('Goodbye cruel ');
     });
+
+    it('null own property must not fall through to an outer scope', function () {
+      expectTemplate('{{#each items}}[{{name}}]{{/each}}')
+        .withInput({
+          name: 'root',
+          items: [{ name: null }, {}, { name: 'z' }],
+        })
+        .withCompileOptions({ compat: true })
+        .toCompileTo('[][root][z]');
+    });
+
+    it('undefined own property must not fall through to an outer scope', function () {
+      expectTemplate('{{#each items}}[{{name}}]{{/each}}')
+        .withInput({
+          name: 'root',
+          items: [{ name: undefined }, {}, { name: 'z' }],
+        })
+        .withCompileOptions({ compat: true })
+        .toCompileTo('[][root][z]');
+    });
+
+    it('null own property stops the lookup even when it shadows a value', function () {
+      expectTemplate('{{#with item}}[{{name}}]{{/with}}')
+        .withInput({ name: 'root', item: { name: null } })
+        .withCompileOptions({ compat: true })
+        .toCompileTo('[]');
+    });
+
+    it('a missing property still falls through to the outer scope', function () {
+      expectTemplate('{{#each items}}[{{name}}]{{/each}}')
+        .withInput({
+          name: 'root',
+          items: [{}, { name: 'z' }],
+        })
+        .withCompileOptions({ compat: true })
+        .toCompileTo('[root][z]');
+    });
+
+    it('entries of a Map used with "with" are resolved from the Map', function () {
+      const map = new Map();
+      map.set('value', 'map-value');
+      map.set('constructor', 'map-constructor');
+
+      expectTemplate('{{#with map}}{{value}}/{{constructor}}{{/with}}')
+        .withInput({ map })
+        .withCompileOptions({ compat: true })
+        .toCompileTo('map-value/map-constructor');
+    });
+
+    it('Map entries in compat mode resolve the same as without compat', function () {
+      const map = new Map();
+      map.set('value', 'map-value');
+      map.set('constructor', 'map-constructor');
+
+      expectTemplate('{{#with map}}{{value}}/{{constructor}}{{/with}}')
+        .withInput({ map })
+        .withCompileOptions({ compat: false })
+        .toCompileTo('map-value/map-constructor');
+    });
   });
 
   describe('decorators', function () {

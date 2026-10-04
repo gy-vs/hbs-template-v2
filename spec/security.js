@@ -302,6 +302,31 @@ describe('security issues', function () {
           })
           .toCompileTo('abc');
       });
+
+      it('should not resolve blocked prototype properties through the recursive lookup (in "compat" mode)', function () {
+        var spy = vi
+          .spyOn(console, 'error')
+          .mockImplementation(function () {});
+
+        var input = new TestClass();
+        input.aString = 'abc';
+
+        expectTemplate('{{#aString}}{{aMethod}}{{/aString}}')
+          .withInput(input)
+          .withCompileOptions({ compat: true })
+          .toCompileTo('');
+
+        expect(spy.mock.calls[0][0]).toMatch(
+          /Handlebars: Access has been denied/
+        );
+      });
+
+      it('should fall back to the outer scope only for own properties (in "compat" mode)', function () {
+        expectTemplate('{{#aString}}{{trim}}{{/aString}}')
+          .withInput({ aString: '  abc  ', trim: 'outer-trim' })
+          .withCompileOptions({ compat: true })
+          .toCompileTo('outer-trim');
+      });
     });
 
     describe('control access to prototype non-methods via "allowedProtoProperties" and "allowProtoPropertiesByDefault', function () {
