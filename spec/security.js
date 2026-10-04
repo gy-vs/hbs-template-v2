@@ -302,6 +302,32 @@ describe('security issues', function () {
           })
           .toCompileTo('abc');
       });
+
+      it('should deny prototype methods on nested levels of the recursive lookup (in "compat" mode)', function () {
+        var spy = vi.spyOn(console, 'error').mockImplementation(function () {});
+
+        expectTemplate('{{#nested}}{{aMethod}}{{/nested}}')
+          .withInput({ nested: new TestClass() })
+          .withCompileOptions({ compat: true })
+          .toCompileTo('');
+
+        expect(spy).toHaveBeenCalledTimes(1);
+        expect(spy.mock.calls[0][0]).toMatch(
+          /Handlebars: Access has been denied/
+        );
+      });
+
+      it('should resolve allowed prototype methods on nested levels of the recursive lookup (in "compat" mode)', function () {
+        expectTemplate('{{#nested}}{{aMethod}}{{/nested}}')
+          .withInput({ nested: new TestClass() })
+          .withCompileOptions({ compat: true })
+          .withRuntimeOptions({
+            allowedProtoMethods: {
+              aMethod: true,
+            },
+          })
+          .toCompileTo('returnValue');
+      });
     });
 
     describe('control access to prototype non-methods via "allowedProtoProperties" and "allowProtoPropertiesByDefault', function () {
@@ -395,6 +421,20 @@ describe('security issues', function () {
             .toCompileTo('');
         });
       }
+
+      it('should deny prototype properties on nested levels of the recursive lookup (in "compat" mode)', function () {
+        var spy = vi.spyOn(console, 'error').mockImplementation(function () {});
+
+        expectTemplate('{{#nested}}{{aProperty}}{{/nested}}')
+          .withInput({ nested: new TestClass() })
+          .withCompileOptions({ compat: true })
+          .toCompileTo('');
+
+        expect(spy).toHaveBeenCalledTimes(1);
+        expect(spy.mock.calls[0][0]).toMatch(
+          /Handlebars: Access has been denied/
+        );
+      });
     });
 
     describe('compatibility with old runtimes, that do not provide the function "container.lookupProperty"', function () {

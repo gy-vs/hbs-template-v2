@@ -291,6 +291,59 @@ describe('blocks', function () {
         .withCompileOptions({ compat: true })
         .toCompileTo('Goodbye cruel ');
     });
+
+    it('block lookup does not fall back to outer scopes for null values', function () {
+      expectTemplate('{{#each items}}[{{name}}]{{/each}}')
+        .withInput({
+          name: 'root',
+          items: [{ name: null }, {}, { name: 'z' }],
+        })
+        .withCompileOptions({ compat: true })
+        .toCompileTo('[][root][z]');
+    });
+
+    it('block lookup does not fall back to outer scopes for undefined values', function () {
+      expectTemplate('{{#each items}}[{{name}}]{{/each}}')
+        .withInput({
+          name: 'root',
+          items: [{ name: undefined }, {}],
+        })
+        .withCompileOptions({ compat: true })
+        .toCompileTo('[][root]');
+    });
+
+    it('block lookup resolves Map entries', function () {
+      var template = '{{#with map}}{{value}}/{{constructor}}{{/with}}';
+      var input = {
+        map: new Map([
+          ['value', 'map-value'],
+          ['constructor', 'map-constructor'],
+        ]),
+      };
+
+      expectTemplate(template)
+        .withInput(input)
+        .withCompileOptions({ compat: true })
+        .toCompileTo('map-value/map-constructor');
+
+      expectTemplate(template).withInput(input).toCompileTo(
+        'map-value/map-constructor'
+      );
+    });
+
+    it('block lookup falls back to outer scopes for keys missing from a Map', function () {
+      expectTemplate('{{#with map}}[{{value}}]{{/with}}')
+        .withInput({ value: 'outer', map: new Map() })
+        .withCompileOptions({ compat: true })
+        .toCompileTo('[outer]');
+    });
+
+    it('block lookup does not fall back to outer scopes for Map entries with null values', function () {
+      expectTemplate('{{#with map}}[{{value}}]{{/with}}')
+        .withInput({ value: 'outer', map: new Map([['value', null]]) })
+        .withCompileOptions({ compat: true })
+        .toCompileTo('[]');
+    });
   });
 
   describe('decorators', function () {
